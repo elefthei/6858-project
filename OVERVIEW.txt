@@ -1,0 +1,17 @@
+Current plan for implementation:
+
+ + A userspace setuid binary or root daemon allows a user to spawn a
+      shell with added or dropped permissions, after doing the
+      necessary authentication.
+
+ + User logins (through SSH) go to an anonymous user with effectively
+      no permissions.  Some setuid binary or root daemon cleans these
+      directories when you log out.
+
+ + Some scripts need to add groups with certain privileges.  This may
+      need to conform to distro-specific conventions for GID
+      allocation.
+
+ + How do applications request certain capabilities?  We might want
+      some sort of manifest file for applications that specifies what
+      capabilities they might want and should be granted.
