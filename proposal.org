@@ -1,0 +1,53 @@
+#+TITLE: Progressive Authentication for Linux
+#+AUTHOR: Lefteris Ioannidis, Pavel Panchekha, Evan Thomas, Kenny ????
+
+Traditionally, a user on a Linux machine logs in to a user account
+that determines their privileges.  Thus, a login is an all-or-nothing
+proposition.  If you log in to a user account without sufficient
+privileges, you need to log in again (perhaps with something like
+=sudo=); if you log in with permissions you do not plan to use, you now
+have to be wary of making mistakes that have damaging repercussions.
+We propose a system that allows a user to incrementally add
+permissions to their session.  A login might start with a completely
+unprivileged, anonymous user, and explicitly request permissions to
+read web server logs, start and stop the web server, or edit the
+configuration files.  The system would allow the administrator to
+create specific roles, and create rules that govern authentication to
+the various roles.
+
+In our plan, we will write a daemon to manage authenticating into
+roles.  Each login (over, say, SSH) will log in to a new, anonymous
+user with no special privileges.  The user will be able to make
+requests to this daemon to spawn shells with added privileges.
+Privileges will be represented by the supplementary group lists of a
+process; the supplementary group list of a shell determines the
+supplementary group lists of the processes its user spawns.  Special
+groups will be created for creating users and groups, for opening
+privileged ports, and similar protected operations.  Similarly,
+special groups will exist for killing processes and creating chroots,
+since these operations classically depend on user IDs for
+authorization.  We expect that some of these changes may involve
+tracing child processes, but hope that all of our goals can be
+achieved without any kernel changes or modules.
+
+We will also produce a suite of tools for creating and managing
+groups, since we expect much wider use of groups in our system and we
+want system administrators to have an easier time of properly setting
+them up.  For example, our tools will have to recursively set the
+=setgid= bit on directories that are protected for certain roles (to
+ensure that files created within them are readable by all members of
+that group, not just by the temporary UID that created them).
+
+Thus, our project involves the following components:
+
+ + A root daemon to grant privileges
+
+ + A service to manage logins -- to create new UIDs, set them up with
+      no privileges, and maintain separation between such instances.
+
+ + A root daemon to allow certain privileged operations, such as
+      binding to privileged ports and killing certain processes, to
+      occur.
+
+ + A suite of tools to manage roles and ensure that they are set up
+      in a secure manner.
