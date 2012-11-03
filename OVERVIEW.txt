@@ -1,5 +1,6 @@
 Current plan for implementation:
 
+
  + A userspace setuid binary or root daemon allows a user to spawn a
       shell with added or dropped permissions, after doing the
       necessary authentication.
@@ -15,3 +16,10 @@ Current plan for implementation:
  + How do applications request certain capabilities?  We might want
       some sort of manifest file for applications that specifies what
       capabilities they might want and should be granted.
+
+ + Static anonymous UID w/o home dir on login, ask for capabilities bits
+   of usergroup to get access to a home dir.
+
+ + Have the root daemon allocate sockets on priviledged ports and then pass
+   them to requesting processes, while checking their capabilities.
+
