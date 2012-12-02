@@ -43,6 +43,7 @@ useradd \
     -N \
     -s "/bin/bash" \
     -u "$UID" \
+    -g incperm \
     "$UNAME"
 
 # Test account
