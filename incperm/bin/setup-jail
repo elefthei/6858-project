@@ -1,0 +1,57 @@
+#!/bin/sh
+
+set -o errexit
+
+INCPERM_DIR="/srv/incperm/"
+
+if [ `id -u` -gt 0 ]; then
+    echo "Need superuser privileges to setup incremental jail"
+    exit 1
+fi
+
+if [ ! -d "$INCPERM_DIR"/var ]; then
+    echo "Could not find persistent state of the incperm library; please repair install"
+    exit 2
+fi
+
+if [ ! -f "$INCPERM_DIR"/var/uid ]; then
+    echo "Could not find persistent state of the incperm library; please repair install"
+    exit 2
+fi
+
+# Making use of POSIX atomic `mv` for concurrency guarantees
+# No sleep because this should be fast
+until mv "$INCPERM_DIR"/var/uid "$INCPERM_DIR"/var/uid.cas; do false; done
+
+# Read in old used UID
+LAST_UID=`cat "$INCPERM_DIR"/var/uid.cas`
+UID=$(expr $LAST_UID + 1)
+# Write back counter
+echo $UID > "$INCPERM_DIR"/var/uid.cas
+# Replace the counter with the new value
+mv "$INCPERM_DIR"/var/uid.cas "$INCPERM_DIR"/var/uid
+
+UNAME="incperm-$UID"
+
+# Create user
+useradd \
+    -c "Incremental Permissions user (anonymous login)" \
+    -d "$INCPERM_DIR"/"$UNAME" \
+    -e `date +'%Y-%m-%d'` \
+    -f 0 \
+    -m -k "$INCPERM_DIR"/skel \
+    -N \
+    -s "/bin/bash" \
+    -u "$UID" \
+    -g incperm \
+    "$UNAME"
+
+# Test account
+TEST_ID=`sudo -u "$UNAME" bash -c 'id -u'`
+
+if [ "$TEST_ID" -ne "$UID" ]; then
+    echo "Self-test failed; aborting in a blind panic"
+    exit 128
+fi
+
+echo "$UNAME"
