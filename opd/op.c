@@ -5,10 +5,12 @@
 #include <sys/un.h>
 
 int main(int argc, char* argv) {
+  system("echo \"$(id -u)\"");
+
   // Get and bind to uds
   struct sockaddr_un address;
-  int ss_fd, connection_fd; //   connection_fd = connection that will come from server socket
   socklen_t address_length;
+  int ss_fd, connection_fd;
   pid_t child;
 
   ss_fd = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -26,12 +28,14 @@ int main(int argc, char* argv) {
     printf("bind() failed\n");
     return 1;
   }
+  system("chmod 777 sock");
 
   if(listen(ss_fd, 5) != 0) {
     printf("listen() failed\n");
     return 1;
   }
-  
+
+
   //listen on socket, handle in a new process when get new connection
   while((connection_fd = accept(ss_fd, (struct sockaddr *) &address, &address_length)) > -1) {
    child = fork();
@@ -48,7 +52,8 @@ int main(int argc, char* argv) {
   return 0;
 }
 
-int connection_handler(int ud_fd) {
+
+int connection_handler(int ud_fd) { // recieve commands from client over ud socket
   printf("connection handler\n");
   int nbytes;
   char buffer[256];
@@ -69,7 +74,7 @@ int connection_handler(int ud_fd) {
   
   if (!strcmp(buffer, "bind") ) { // run the command given by client
     int port = atoi(sp);
-    printf("send_port was success ? :: %di\n", send_port(port, ud_fd));
+    printf("send_port was success ? :: %d\n", send_port(port, ud_fd));
   } else if (strcmp(buffer, "kill")) {
     int port = atoi(sp);
   }
