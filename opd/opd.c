@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include "reqsock/reqlib.h"
 
 int main(int argc, char* argv) {
   system("echo \"$(id -u)\"");
@@ -71,15 +72,15 @@ int connection_handler(int ud_fd) { // recieve commands from client over ud sock
 
   *sp = '\0';
   sp++;
-  
-  if (!strcmp(buffer, "bind") ) { // run the command given by client
+ 
+  int cmd = atoi(buffer);
+  if (cmd == BIND) { // run the command given by client
     int port = atoi(sp);
     printf("send_port was success ? :: %d\n", send_port(port, ud_fd));
-  } else if (strcmp(buffer, "kill")) {
-    int port = atoi(sp);
+  } else if (cmd == KILL) {
   }
   else { // command has error, write error message
-    printf("invalid command :: %s", buffer);
+    printf("invalid command :: %s\n", buffer);
   }
 
   printf("MESSAGE FROM CLIENT: %s\n", buffer);

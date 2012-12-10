@@ -2,65 +2,50 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
+#include "reqlib.h"
 
-int main(int argc, char* argv[]) {
-  struct sockaddr_un address;
-  char msg[256]; 
-  
-  int nbytes = preparemsg(argc, argv, &msg);
-  int ud_fd = ctd();
-  write(ud_fd, msg, nbytes);
 
-  int port_fd = get_port_fd(ud_fd);
-  listenToPort(port_fd);
+int getPort_fd(int port, const char* path, int len) {
+  int ud_fd = ctd(path, len);
+  request_port(ud_fd, port);
+  int port_fd = receive_port(ud_fd);
 
-  close(ud_fd);
-  return 0;
+  return port_fd;
 }
 
-int preparemsg(int argc, char* argv[], char *msg) {
+int ctd(const char* path, int len) { //connect to domain socket
 
-  printf("argc is %d argv[1] is %s\n", argc, argv[1]);
-  printf("size of argv1 %lu\n", strlen(argv[1]));
-  printf("argv[1] == bind ?:: %d\n", strcmp(argv[1], "bind"));
-
-  memset(msg, 0, 256); //clear the msg
-
-  int nbytes = strlen(argv[1]) + strlen(argv[2]) + 1;
-  strncpy(msg, argv[1], strlen(argv[1]));
-  
-  strcat(msg, " ");
-  strcat(msg, argv[2]);
-  msg[nbytes] = '\0';
-
-  return nbytes;
-}
-
-int ctd() { // connect to daemon (connects to the daemon that gives sock descriptors
+  //connects to the socket 
   struct sockaddr_un address;
-  int ud_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+  int  ud_fd;
 
-  if(ud_fd < 0)
-  {
+  ud_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+  if(ud_fd < 0) {
     printf("socket() failed\n");
-    return 1;
+    return -1;
   }
 
   /* start with a clean address structure */
   memset(&address, 0, sizeof(struct sockaddr_un));
 
   address.sun_family = AF_UNIX;
-  snprintf(address.sun_path, 7, "./sock");
+  snprintf(address.sun_path, len, path);
 
   if(connect(ud_fd, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0) {
     printf("connect() failed\n");
-    return 1;
+    return -1;
   }
 
   return ud_fd;
 }
 
-int get_port_fd(int ud_fd) { // gets bound socket descriptor from the daemon
+int request_port(int ud_fd, int port) {
+    char msg[256];
+    int nbytes = snprintf(msg, 256, "%d %d", BIND, port);
+    return write(ud_fd, msg, nbytes);
+}
+
+int receive_port(int ud_fd) {
   int sent_fd, available_ancillary_element_buffer_space;
   struct msghdr socket_message;
   struct iovec io_vector[1];
@@ -109,27 +94,4 @@ int get_port_fd(int ud_fd) { // gets bound socket descriptor from the daemon
     }
   }
   return -1;
-}
-
-int listenToPort(int port_fd) { // listens on the port forever
-  struct sockaddr_in address;
-  printf("listen to port :: %d\n", listen(port_fd, 3));
-
-  int addrlen = sizeof(struct sockaddr_in);
-  int new_socket = accept(port_fd, (struct sockaddr *)&address, &addrlen);
-  printf("new socekt :: %d\n", new_socket);
-  if (new_socket < 0) {
-    perror("Accept connection");
-  }
-
-  char buffer[1024];
-  int size;
-  printf("about to listen\n"); 
-
-  while ((size = recv(new_socket, buffer, sizeof(buffer) -1, 0)) >= 0) {
-    printf("%s\n", buffer);
-    send(new_socket, "reply\n\r", 7, 0);
-
-    memset(buffer, 0, 1024);
-  }
 }
