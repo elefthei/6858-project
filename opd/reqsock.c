@@ -4,37 +4,42 @@
 #include <netinet/in.h>
 
 int main(int argc, char* argv[]) {
-  int ud_fd = ctd();
+  struct sockaddr_un address;
+  char msg[256]; 
   
-  // send a command to the daemon
-  char buffer[256];
-  memset(&buffer, 0, 256); //clear the buffer
+  int nbytes = preparemsg(argc, argv, &msg);
+  int ud_fd = ctd();
+  write(ud_fd, msg, nbytes);
+
+  int port_fd = get_port_fd(ud_fd);
+  listenToPort(port_fd);
+
+  close(ud_fd);
+  return 0;
+}
+
+int preparemsg(int argc, char* argv[], char *msg) {
 
   printf("argc is %d argv[1] is %s\n", argc, argv[1]);
   printf("size of argv1 %lu\n", strlen(argv[1]));
   printf("argv[1] == bind ?:: %d\n", strcmp(argv[1], "bind"));
 
+  memset(msg, 0, 256); //clear the msg
+
   int nbytes = strlen(argv[1]) + strlen(argv[2]) + 1;
-  strncpy(buffer, argv[1], strlen(argv[1]));
+  strncpy(msg, argv[1], strlen(argv[1]));
   
-  strcat(buffer, " ");
-  strcat(buffer, argv[2]);
-  buffer[nbytes] = '\0';
-    
-  write(ud_fd, buffer, nbytes);
+  strcat(msg, " ");
+  strcat(msg, argv[2]);
+  msg[nbytes] = '\0';
 
-
-  printf("MESSAGE FROM SERVER: %s\n", buffer);
-  close(ud_fd);
-
-  return 0;
+  return nbytes;
 }
 
 int ctd() { // connect to daemon (connects to the daemon that gives sock descriptors
   struct sockaddr_un address;
-  int  ud_fd;
+  int ud_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 
-  ud_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if(ud_fd < 0)
   {
     printf("socket() failed\n");
@@ -55,7 +60,7 @@ int ctd() { // connect to daemon (connects to the daemon that gives sock descrip
   return ud_fd;
 }
 
-int get_sd(int ud_fd) {
+int get_port_fd(int ud_fd) { // gets bound socket descriptor from the daemon
   int sent_fd, available_ancillary_element_buffer_space;
   struct msghdr socket_message;
   struct iovec io_vector[1];
@@ -104,4 +109,27 @@ int get_sd(int ud_fd) {
     }
   }
   return -1;
+}
+
+int listenToPort(int port_fd) { // listens on the port forever
+  struct sockaddr_in address;
+  printf("listen to port :: %d\n", listen(port_fd, 3));
+
+  int addrlen = sizeof(struct sockaddr_in);
+  int new_socket = accept(port_fd, (struct sockaddr *)&address, &addrlen);
+  printf("new socekt :: %d\n", new_socket);
+  if (new_socket < 0) {
+    perror("Accept connection");
+  }
+
+  char buffer[1024];
+  int size;
+  printf("about to listen\n"); 
+
+  while ((size = recv(new_socket, buffer, sizeof(buffer) -1, 0)) >= 0) {
+    printf("%s\n", buffer);
+    send(new_socket, "reply\n\r", 7, 0);
+
+    memset(buffer, 0, 1024);
+  }
 }
