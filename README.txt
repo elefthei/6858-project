@@ -56,7 +56,7 @@ authentication for the `incperm` user.
     
 To this file, add each of the public keys that should be allowed to
 connect to your server, prefixed by the string
-`command=/srv/incperm/bin/on-login"`.  This string should come before
+`command="/srv/incperm/bin/on-login"`.  This string should come before
 the `ssh-dss` or `ssh-rsa` part of the key -- it should be the very
 start of each line.  Note that public key login is currently required
 for using PAL; if you want password-based authentication, you could
