@@ -28,13 +28,14 @@ int main(int argc, char* argv[]) {
 	if(strchr(pwd, 10)) {
 		*strchr(pwd, 10)='\0';
 	}
-
+	
 	if(!strcmp(req_perm, "read")) {
 
 	} else if(!strcmp(req_perm, "write")) {
 
 	} else if(!strcmp(req_perm, "port")) { //grant new GID tied to ability to connect to port
   		if(checkpw(pwd, req_perm)) {
+  			// printf("password checks out\n");
   			grouplist[numgroups-1] = 7000;//some group associated with ability to open/close ports
   		}
 	} else if(!strcmp(req_perm, "kill")) {
@@ -43,18 +44,19 @@ int main(int argc, char* argv[]) {
 }
 
 int checkpw(char* input, char* req_perm) {
-	char* correct;
+	char correct[256];
 	getPwd(req_perm, correct);
+	printf("%s\n", correct);
 
-	// if(!strcmp(input, correct)) {
-	// 	return 1;
-	// }
+	if(!strcmp(input, correct)) {
+		return 1;
+	}
 	return 0;
 }
 
 void getPwd(char* req_perm, char* correct) {
 	FILE* fd = fopen("perm.conf", "r");
-	char buf[128];
+	char buf[256];
 	char *sp1, *sp2;
 
 	while(fgets(buf, sizeof(buf), fd)) {
@@ -70,10 +72,9 @@ void getPwd(char* req_perm, char* correct) {
 				*sp2='\0';
 				sp2++;
 			}
-
 			if(!strcmp(sp1, req_perm) && !strcmp(buf, "permission")) {
-				correct=sp2;
-				return;
+				unsigned int nbytes = strncpy(correct, sp2, sizeof(correct));
+
 			}
 		}
 	}
