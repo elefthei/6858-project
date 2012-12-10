@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 
-#define PORTPWD "jigglypuff"
+#define PORTPWD "jigglypuffs"
 
 int main(int argc, char* argv[]) {
 	int uid = getuid();
@@ -16,25 +18,27 @@ int main(int argc, char* argv[]) {
 		return ; 
 	}
 
-	printf("%d\n", uid);
-	// printf("%d::%d::%d::%d::%d::%d::%d::%d\n", grouplist[0], grouplist[1], grouplist[2], grouplist[3], grouplist[4], grouplist[5], grouplist[6], grouplist[7]);
-	if(!strcmp(argv[1], "port")) {
-		//grant new GID tied to ability to connect to port
-		printf("Password:\n");
-		char *envp[] = { NULL };
-  		char *args[] = { "/bin/stty", "-echo",NULL};
+	if(!strcmp(argv[1], "port")) { //grant new GID tied to ability to connect to port
+		printf("Password: ");
   		fflush(stdout);
-  		execve("/bin/stty", args, envp);
-  		char *p;
+  		system("stty -echo");
   		fgets(pwd, sizeof(pwd), stdin);
-  		// if ((p = strchr(pwd, '\n')) != NULL) {   /* check if last element is a newline */
-	     	// *p = '\0';                          /* make last element a null character */
-    	// }
-    	
-  		// args[1] = "echo";
-  		// execve("/bin/stty", args, envp);
-  		printf("Printing now::%s\n", pwd);
+  		system("stty echo");
+
+    	if(strchr(pwd, 10)) {
+    		*strchr(pwd, 10)=0;
+    	}
+  		if(checkpw(pwd, PORTPWD)) {
+
+  		}
 	} else if(!strcmp(argv[1], "kill")) {
 		//grant new GID tied to ability to connect to kill
 	}
+}
+
+int checkpw(char* input, char* correct) {
+	if(!strcmp(input, correct)) {
+		return 1;
+	}
+	return 0;
 }
