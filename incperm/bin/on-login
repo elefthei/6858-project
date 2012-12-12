@@ -6,7 +6,7 @@
 prelogin
 
 username=`sudo /srv/incperm/bin/setup-jail`
-echo "Your temporary username is $username; enjoy!"
+echo "Your temporary username is $username; enjoy!  Use `perm` to gain more privileges."
 
 if [ -z "$SSH_ORIGINAL_COMMAND" ]; then
     exec sudo -u "$username" -i

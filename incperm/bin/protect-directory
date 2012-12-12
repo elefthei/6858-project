@@ -1,0 +1,22 @@
+#!/bin/sh
+
+usage () {
+    echo <<EOF
+USAGE: protect-directory [dir] [permission]
+
+Sets permissions on [dir] (a directory) so that it contains files only
+editable by users with the given permission.  Files created in these
+directories will also have the same property.
+EOF
+}
+
+if [ "x$#" != "x2" -o "x$1" = "x-h" ]; then
+    usage
+    exit 127
+fi
+
+INCPERM_DIR="/srv/incperm/"
+DIR="$1"
+PERM="$2"
+
+find "$DIR" -type d -exec chmod 2770 {} \;

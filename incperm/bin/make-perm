@@ -1,0 +1,38 @@
+#!/bin/sh
+
+usage () {
+    echo <<EOF
+USAGE: make-perm [permission]
+
+Creates a permission named [permission]; no user or group of this name
+may already exit.  In fact, simply creates a user and group named this.
+EOF
+}
+
+if [ "x$#" != "x1" -o "x$1" = "x-h" ]; then
+    usage
+    exit 127
+fi
+
+INCPERM_DIR="/srv/incperm/"
+
+PERM="$1"
+echo "Creating permission $1" >&2
+
+
+useradd \
+    -d "$INCPERM_DIR"/perm-"$PERM" \
+    -e `date +'%Y-%m-%d'` \
+    -f 0 \
+    -s "/bin/bash" \
+    -m \
+    "$PERM"
+
+useradd \
+    -d "$INCPERM_DIR"/perm-"$PERM" \
+    -s "/bin/bash" \
+    -g "$PERM" \
+    -G incperm-perm \
+    "$PERM-login"
+
+sudo passwd "$PERM-login"

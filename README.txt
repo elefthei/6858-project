@@ -49,6 +49,11 @@ password-based authentication into this user.
     sudo addgroup incperm
     sudo chown root:root /srv/incperm/
 
+Also create a group named incperm-perm; this group will denote the fact that
+certain groups represent permissions.
+
+    sudo addgroup incperm-perm
+
 Next, edit the file `~incperm/.ssh/authorized_keys`, which manages SSH
 authentication for the `incperm` user.
 
@@ -69,10 +74,14 @@ user-owned).  Thus, certain commands need to be added to the `sudoers`
 file to execute passwordless.  It should be possible for the `incperm`
 user to execute `/srv/incperm/bin/setup-jail` and to execute any
 command as a user in the `incperm` group.  These two can be achieved
-by adding the following line to the sudoers file via `sudo visudo`:
+by lines to the sudoers file via `sudo visudo`.  We also need permissions
+for anonymous users to authenticate into permission login users, which is
+achieved with the next two lines.
 
     incperm   ALL=(root)     NOPASSWD: /srv/incperm/bin/setup-jail
     incperm   ALL=(%incperm) NOPASSWD: ALL
+    Defaults:%incperm        targetpw
+    %incperm ALL=(%incperm-perm) ALL
     
 The first line allows the `incperm` user to execute
 `/srv/incperm/bin/setup-jail` as root without a password, and the

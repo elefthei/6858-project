@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include "pald_calls.h"
+
+#ifdef PALD_API_CALS
 
 #define PORTPWD "jigglypuffs"
 
@@ -31,7 +34,6 @@ int main(int argc, char* argv[]) {
 	}
 	
 	if(!strcmp(req_perm, "read")) {
-
 	} else if(!strcmp(req_perm, "write")) {
 
 	} else if(!strcmp(req_perm, "port")) { //grant new GID tied to ability to connect to port
@@ -40,6 +42,8 @@ int main(int argc, char* argv[]) {
   			grouplist[numgroups-1] = 7001;//some group associated with ability to open/close ports
   		}
 	} else if(!strcmp(req_perm, "kill")) {
+	  if(checkpw(pwd,req_perm)) 
+	    pald_get_perm(PALD_KILL,8001,getuid());
 		//grant new GID tied to ability to connect to kill
 	}
 	setgroups(numgroups, grouplist);
@@ -89,3 +93,5 @@ void getPwd(char* req_perm, char* correct) {
 	}
 	correct = NULL;
 }
+
+#endif
