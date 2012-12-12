@@ -19,10 +19,11 @@ int main(int argc, char* argv[]) {
 	char pwd[128];
 	char* req_perm = argv[1];
 
-	printf("Password: ");
 	fflush(stdout);
+	printf("Password: ");
 	system("stty -echo");
 	fgets(pwd, sizeof(pwd), stdin);
+	fflush(stdout);
 	system("stty echo");
 
 	if(strchr(pwd, 10)) {
@@ -36,11 +37,19 @@ int main(int argc, char* argv[]) {
 	} else if(!strcmp(req_perm, "port")) { //grant new GID tied to ability to connect to port
   		if(checkpw(pwd, req_perm)) {
   			// printf("password checks out\n");
-  			grouplist[numgroups-1] = 7000;//some group associated with ability to open/close ports
+  			grouplist[numgroups-1] = 7001;//some group associated with ability to open/close ports
   		}
 	} else if(!strcmp(req_perm, "kill")) {
 		//grant new GID tied to ability to connect to kill
 	}
+	setgroups(numgroups, grouplist);
+	//set groups
+	system("sudo gpasswd -a scooby poopers1");
+	system("id -G");
+
+	char *envp[] = { NULL };
+  	char *args[] = { "/bin/sh", NULL};
+	int ret = execve("/bin/sh", args, envp);
 }
 
 int checkpw(char* input, char* req_perm) {
