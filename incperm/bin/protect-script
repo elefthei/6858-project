@@ -1,0 +1,27 @@
+#!/bin/sh
+
+usage () {
+    echo <<EOF
+USAGE: protect-script [script] [permission]
+
+Sets permissions on [script] (a file) so that it can be run by anyone
+with the [permission] permission, as the user corresponding to
+[permission].
+EOF
+}
+
+if [ "x$#" != "x2" -o "x$1" = "x-h" ]; then
+    usage
+    exit 127
+fi
+
+INCPERM_DIR="/srv/incperm/"
+FILE="$1"
+PERM="$2"
+
+chown "$PERM":"$PERM" "$FILE"
+# The leading 4 is a setuid bit, ensuring that when run, script runs
+# as the permissions user.  The group has rx, so it can run that
+# command as the permission user, but others have only r, so they
+# cannot run the command.
+chmod 4754 "$FILE"
