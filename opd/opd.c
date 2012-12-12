@@ -31,7 +31,8 @@ int main(int argc, char* argv) {
     printf("bind() failed\n");
     return 1;
   }
-  system("chmod 777 sock");
+  system("chmod 770 sock");
+  system("chown 0:11 sock");
 
   if(listen(ss_fd, 5) != 0) {
     printf("listen() failed\n");
@@ -77,11 +78,11 @@ int connection_handler(int ud_fd) { // recieve commands from client over ud sock
  
   int cmd = atoi(buffer);
   if (cmd == BIND) { // run the command given by client
+    int cmd = atoi(buffer);
     int port = atoi(sp);
     printf("send_port was success ? :: %d\n", send_port(port, ud_fd));
   } else if (cmd == KILL) {
-  }
-  else { // command has error, write error message
+  } else { // command has error, write error message
     printf("invalid command :: %s\n", buffer);
   }
 
@@ -107,19 +108,10 @@ int bind_port (int port) {
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
   address.sin_port = htons(port);
-  /* bind the socket to the port specified above */
+
   printf("bind to ss_fd returns %d\n", bind(ss_fd, (struct sockaddr *)&address, sizeof(address)));
   
   return ss_fd;
-  /*listen(ss_fd, 3);
-
-  int addrlen = sizeof(struct sockaddr_in);
-  int new_socket = accept(ss_fd, (struct sockaddr *)&address, &addrlen);
-  if (new_socket<0) {
-    perror("Accept connection");
-  }
-  return new_socket;
-  */
 }
 
 int send_port(int port, int ud_fd) {
