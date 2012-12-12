@@ -1,0 +1,20 @@
+#!/bin/sh
+
+usage () {
+    echo <<EOF
+USAGE: perm [permission]
+
+Requests a permission named [permission]; authentication is usually
+required.
+EOF
+}
+
+if [ "x$#" != "x1" -o "x$1" = "x-h" ]; then
+    usage
+    exit 127
+fi
+
+INCPERM_DIR="/srv/incperm/"
+
+PERM="$1"
+sudo -P -u "$PERM-login" bash -c "newgrp '$PERM'; bash"
