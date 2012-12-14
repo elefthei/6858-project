@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <pwd.h>
+#include <syslog.h>
 #include "pald.h"
 
 #define SOCKPN "127.0.0.1"
@@ -101,7 +102,7 @@ int main(int argc, char* argv[])
 }
 
 void ragequit(const char *msg){
-  perror(msg);
+  syslog(LOG_DAEMON|LOG_ERR,"%s", msg);
   exit(-1);
 }
 
@@ -195,6 +196,6 @@ int check_creds(int fd, int crypt_id){
     }
 
   }
-
+  closelog();
   return 0;
 }
