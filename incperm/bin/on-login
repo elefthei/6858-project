@@ -1,17 +1,10 @@
 #!/bin/sh
 
 # Read in configuration file
-. /srv/incperm/incperm.conf
+#. /srv/incperm/incperm.conf
 
-prelogin
+#prelogin
 
-username=`sudo /srv/incperm/bin/setup-jail`
-echo "Your temporary username is $username; enjoy!  Use `perm` to gain more privileges."
+sudo /srv/incperm/bin/setup-jail
 
-if [ -z "$SSH_ORIGINAL_COMMAND" ]; then
-    exec sudo -u "$username" -i
-else
-    exec sudo -u "$username" -H $SSH_ORIGINAL_COMMAND
-fi
-
-postlogin
+#postlogin
