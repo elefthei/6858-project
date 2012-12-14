@@ -10,7 +10,8 @@
 
 int main(int argc, char* argv[]) {
 	if(argc!=2) {
-		return 1;
+		perror("Incorrect number of arguments");
+		return 1; //exit(1)?
 	}
 	// char pwd[128];
 	// char buf[256];
@@ -29,7 +30,8 @@ int main(int argc, char* argv[]) {
 
 	//some check pw
 	if(!pald_request_gid( (gid_t)atoi(argv[1]) ) {
-		return 1;
+		perror("Wrong password");
+		return 1; //exit(1)?
 	}
 
 	int numgroups = getgroups(0, NULL)+1;
