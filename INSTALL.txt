@@ -42,7 +42,7 @@ First, copy the `incperm` subdirectory in this source distribution to
 `/srv/incperm/`; for now, this path is hardcoded, though it might be
 changable in the future.
 
-    sudo cp -r incperm /srv/incperm/
+    sudo cp -r incperm/ /srv/incperm
     
 ### Creating an `incperm` user
     
