@@ -45,11 +45,11 @@ int main(int argc, char* argv[]) {
 	// printf("::id pre-anything::\n");
 	// system("id");
 
-	setgid(atoi(getenv("SUDO_UID")));
+	setgid(getgid());
 	// printf("::id post-setgid::\n");
 	//system("id");
 
-	setuid(atoi(getenv("SUDO_UID")));
+	setuid(getuid());
 	// printf("::id post-setuid::\n");
 	// system("id");
 
