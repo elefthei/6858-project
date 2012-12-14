@@ -1,25 +1,26 @@
-Current plan for implementation:
-
-
- + A userspace setuid binary or root daemon allows a user to spawn a
-      shell with added or dropped permissions, after doing the
-      necessary authentication.
+Current PAL Implementation
+======================
 
  + User logins (through SSH) go to an anonymous user with effectively
-      no permissions.  Some setuid binary or root daemon cleans these
-      directories when you log out.
+      no permissions.  This user may be in a chroot.
 
- + Some scripts need to add groups with certain privileges.  This may
-      need to conform to distro-specific conventions for GID
-      allocation.
+ + A setuid binary allows a user to spawn a shell with added
+      permissions, after doing the necessary authentication.
 
- + How do applications request certain capabilities?  We might want
-      some sort of manifest file for applications that specifies what
-      capabilities they might want and should be granted.
+ + A root daemon listens to authentication requests (effectively,
+      logins), and reports whether or not authentication succeeded.
+      This is what the aforementioned setuid binary uses.
 
- + Static anonymous UID w/o home dir on login, ask for capabilities bits
-   of usergroup to get access to a home dir.
+ + Some administrator scripts exist to add groups/permissions.
+      
+Future Plans
+------------
 
  + Have the root daemon allocate sockets on priviledged ports and then pass
    them to requesting processes, while checking their capabilities.
 
+ + Have an application-level API, for doing similar splitting within
+      an application.
+
+ + Possibly add a kernel module to be able to change the permissions
+      of a program after it is run.
