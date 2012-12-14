@@ -161,7 +161,7 @@ int check_creds(int fd, int crypt_id){
       pass=strchr(buffer,RECV_DELIMETER); //change this to '\n'
 
       if(pass == NULL)
-	ragequit("Received unacceptable message\n");
+	exit(-1);
       *pass='\0';
       pass++; //pass now points to password
 
