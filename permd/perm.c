@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[]) {
 	if(argc!=2) {
-		return ; 
+		return 1;
 	}
 	// char pwd[128];
 	// char buf[256];
@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
 	// }
 
 	//some check pw
-	if(!pald_request_gid(argv[1])) {
-		return ;
+	if(!pald_request_gid( (gid_t)atoi(argv[1]) ) {
+		return 1;
 	}
 
 	int numgroups = getgroups(0, NULL)+1;
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 	
 	//setuid(system("echo $SUDO_UID"));
 
-	grouplist[numgroups-1] = argv[1];//some GID attached to this permission
+	grouplist[numgroups-1] = atoi(argv[1]);//some GID attached to this permission
 	setgroups(numgroups, grouplist);
 
 	// printf("::id pre-anything::\n");
