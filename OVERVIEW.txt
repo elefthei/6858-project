@@ -3,32 +3,32 @@ Current PAL Implementation
 
  + User logins (through SSH, using public-key) go to an anonymous user 
  	  with effectively no permissions. This user may be in a chroot.
-	- The sshd login is intercepted and instead a new user is created 
-	  on the fly. By prefixing logins with the on-login and setup-jail 
-	  scripts in incperm/bin, new users are allocated names and their 
-	  directories setup. User ID's are not reused, and are instead 
-	  allocated using a counter that is updated using an atomic
-	  rename (incperm/var/uid).
+ - The sshd login is intercepted and instead a new user is created 
+      on the fly. By prefixing logins with the on-login and setup-jail 
+      scripts in incperm/bin, new users are allocated names and their 
+      directories setup. User ID's are not reused, and are instead 
+      allocated using a counter that is updated using an atomic
+      rename (incperm/var/uid).
 
 
  + A setuid binary allows a user to spawn a shell with added
-      permissions, after doing the necessary authentication. Permissions will
-      have been allocated by the administrator, and are password protected.
-    - The binary sets the uid and gid for the process correctly before 
+    permissions, after doing the necessary authentication. Permissions will
+    have been allocated by the administrator, and are password protected.
+ - The binary sets the uid and gid for the process correctly before 
       spawning a new shell, and the source code is /permd/perm.c. 
       After running `make` inside of permd, the setuid binary is found 
       in /incperm/skel.
 
 
  + A root daemon listens to authentication requests (effectively,
-      logins), and reports whether or not authentication succeeded.
-      This is what the aforementioned setuid binary uses.
-    - The authentication code is found in /pald and exposes an API for
+    logins), and reports whether or not authentication succeeded.
+    This is what the aforementioned setuid binary uses.
+ - The authentication code is found in /pald and exposes an API for
       the setuid binary.
 
 
  + Some administrator scripts exist to add groups/permissions.
- 	- The make-perm, protect-binary, and protect-directory scripts
+ - The make-perm, protect-binary, and protect-directory scripts
       in incperm/bin allow for administrators to setup permissions
       on the server. Permissions are set by making groups with a paired
       user, and the password for the permissions are the password for
