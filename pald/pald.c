@@ -6,8 +6,10 @@
 #include <ctype.h>
 #include <crypt.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <signal.h>
@@ -15,11 +17,9 @@
 #include <pwd.h>
 #include "pald.h"
 
-#define SOCKPN "/tmp/paldsock"
+#define SOCKPN "127.0.0.1"
 #define RECV_DELIMETER ':'
-
-#define CRED_AUTH_SUCESS "1111"
-#define CRED_AUTH_FAIL "0000"
+#define PORTNUM 7331
 
 const char SALT_CMD[]="grep -oP '(%s\\:\\$[1-6]\\$.+\\$)' /etc/shadow|awk -F\\$ '{print $3}'\n";
 const char SHADOW_CMD[]="grep -oP '(%s\\:.+)' /etc/shadow|awk -F: '{ print $2 }'";
@@ -59,33 +59,23 @@ int main(int argc, char* argv[])
   close(STDOUT_FILENO);
 
     //BEGIN DAEMON CODE
-  int infd=socket(AF_UNIX, SOCK_STREAM, 0);
+  int infd=socket(AF_INET, SOCK_STREAM, 0);
   if (infd < 0) 
     ragequit("can't create socket");
 
   fcntl(infd, F_SETFD, FD_CLOEXEC);
 
-  struct stat st;
-  if (stat(SOCKPN, &st) >= 0) {
-    if (!S_ISSOCK(st.st_mode)) {
-      fprintf(stderr, "socket pathname %s exists and is not a socket\n",
-	      SOCKPN);
-      exit(-1);
-    }
-    
-    unlink(SOCKPN);
-  }
 
-  struct sockaddr_un addr;
-  addr.sun_family = AF_UNIX;
-  snprintf(addr.sun_path, sizeof(SOCKPN), "%s", SOCKPN);
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = inet_addr(SOCKPN);
+  addr.sin_port = htons(PORTNUM);
+
   if (bind(infd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
     fprintf(stderr,"WARNING: cannot bind to socket %s (%s), exiting\n",
 	    SOCKPN, strerror(errno));
     exit(-1);
   }
-
-  chmod(SOCKPN, 0777); //change me
 
   if(listen(infd,SOMAXCONN)!=0)
     ragequit("pald failed to listen on open sock\n");

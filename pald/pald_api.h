@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-#define SOCKPN "/tmp/paldsock"
+#define SOCKPN "127.0.0.1"
+#define PORTNUM 7331
 #define RECV_DELIMETER ':'
 
 int ragequit(const char *msg){
@@ -16,16 +19,17 @@ int ragequit(const char *msg){
 int pald_request_gid(gid_t GID){
 
   int sock, rval; 
-  struct sockaddr_un server;
+  struct sockaddr_in server;
 
-  sock = socket(AF_UNIX, SOCK_STREAM, 0); 
+  sock = socket(AF_INET, SOCK_STREAM, 0); 
   if (sock < 0)
     return ragequit("error opening stream socket"); 
 
-  server.sun_family = AF_UNIX; 
-  strcpy(server.sun_path, SOCKPN);
+  server.sin_family = AF_INET; 
+  server.sin_addr.s_addr = inet_addr(SOCKPN);
+  server.sin_port = htons(PORTNUM);
 
-  if (connect(sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un)) < 0) { 
+  if (connect(sock, (struct sockaddr *) &server, sizeof(struct sockaddr_in)) < 0) { 
     close(sock); 
     return ragequit("error connecting stream socket"); 
   } 
