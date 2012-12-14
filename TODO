@@ -1,1 +1,0 @@
-We discussed having an anonymous user with minimum rights and no home folder. However, we could give the anonymous user a tmpfs directory and chroot him there, no?
