@@ -37,13 +37,13 @@ int pald_request_gid(gid_t GID){
     return ragequit("error writing on stream socket"); 
   
   char reply;
-  if((rval = read(sock, reply, 1)) < 0)
+  if((rval = read(sock, &reply, 1)) < 0)
     ragequit("error reading stream message");
 
   close(sock);
 
   if(reply=='0')
-    return 1
+    return 1;
      
   
   return 0;
