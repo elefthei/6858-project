@@ -26,13 +26,7 @@ useradd \
     -f 0 \
     -s "/bin/bash" \
     -m \
+    -G incperm-perm \
     "$PERM"
 
-useradd \
-    -d "$INCPERM_DIR"/perm-"$PERM" \
-    -s "/bin/bash" \
-    -g "$PERM" \
-    -G incperm \
-    "$PERM-login"
-
-sudo passwd "$PERM-login"
+sudo passwd "$PERM"

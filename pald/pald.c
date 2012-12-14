@@ -15,7 +15,9 @@
 #include <signal.h>
 #include <errno.h>
 #include <pwd.h>
+#include <grp.h>
 #include <syslog.h>
+#include <wait.h>
 #include "pald.h"
 
 #define SOCKPN "127.0.0.1"
@@ -78,7 +80,7 @@ int main(int argc, char* argv[])
     exit(-1);
   }
 
-  if(listen(infd,SOMAXCONN)!=0)
+  if(listen(infd,1)!=0)
     ragequit("pald failed to listen on open sock\n");
   
   int connection_fd;  
@@ -90,19 +92,20 @@ int main(int argc, char* argv[])
     if(child<0)
 
       ragequit("fork");
-    else if(child == 0)
+    else if(child == 0) //child
       return check_creds(connection_fd, crypt_id);
-    else
-      close(connection_fd);
+    else //father 
+    wait(NULL); 
+    close(connection_fd);
   }
   
   close(infd);
-  unlink(SOCKPN);
   return 0;
 }
 
 void ragequit(const char *msg){
   syslog(LOG_DAEMON|LOG_ERR,"%s", msg);
+  //perror(msg);
   exit(-1);
 }
 
@@ -133,8 +136,8 @@ int mstrcmp(char *s1, char *s2){
 int check_creds(int fd, int crypt_id){
 
   // buffer[261] sets a limit of 255 bytes on user passwords, acceptable for most use cases
-  char shadow_credentials[200], shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[261],salty[40],*pass; 
-  unsigned int i,GID;
+  char shadow_credentials[200], shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[261],salty[40],*pass, *usrname; 
+  int i,GID=0,UID=0;
   FILE *pfd;
 
   struct passwd *user_st;
@@ -159,7 +162,14 @@ int check_creds(int fd, int crypt_id){
       else
 	ragequit("Received GID is not a number.");
 
-      if((user_st=getpwuid(GID)) == NULL)
+      struct group *gidgrp;
+      if((gidgrp=getgrgid(GID)) == NULL)
+	ragequit("GID not found");
+
+      usrname=gidgrp->gr_name;
+      UID=getpwnam(usrname)->pw_uid;
+
+      if((user_st=getpwuid(UID)) == NULL)
 	ragequit("Supplied UID/GID not found in /etc/passwd\n");
       
       snprintf(salt_cmd, sizeof(SALT_CMD)-2+sizeof(user_st->pw_name), SALT_CMD, user_st->pw_name); //bash command to return the salt for user user_st->pw_name
@@ -192,6 +202,7 @@ int check_creds(int fd, int crypt_id){
       buffer[1]='\0';
       if(write(fd, &buffer, sizeof(buffer))<0)
 	ragequit("Couldn't return result to sock.\n");
+      close(fd);
       
     }
 
