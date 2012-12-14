@@ -17,6 +17,7 @@
 
 #define SOCKPN "/tmp/paldsock"
 #define CONF_FILE "pald.conf"
+#define RECV_DELIMETER ':'
 
 #define CRED_AUTH_SUCESS "1111"
 #define CRED_AUTH_FAIL "0000"
@@ -142,8 +143,8 @@ int mstrcmp(char *s1, char *s2){
 	
 int check_creds(int fd, int crypt_id){
 
-  // buffer[260] sets a limit of 255 bytes on user passwords, acceptable for most use cases
-  char shadow_credentials[200], ret_val[2],*shadow_creds_pt, shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[260],salty[40],*pass; 
+  // buffer[261] sets a limit of 255 bytes on user passwords, acceptable for most use cases
+  char shadow_credentials[200], ret_val[2],*shadow_creds_pt, shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[261],salty[40],*pass; 
   unsigned int i,GID;
   FILE *pfd;
 
@@ -157,7 +158,7 @@ int check_creds(int fd, int crypt_id){
   while(1){
     if(recv(fd,buffer,sizeof(buffer)-1,0) > 0){
 
-      pass=strchr(buffer,':'); //change me to '\n'
+      pass=strchr(buffer,RECV_DELIMETER); //change this to '\n'
 
       if(pass == NULL)
 	ragequit("Received unacceptable message\n");
