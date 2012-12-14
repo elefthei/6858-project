@@ -4,94 +4,51 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include "pald_calls.h"
-
-#ifdef PALD_API_CALS
-
-#define PORTPWD "jigglypuffs"
 
 int main(int argc, char* argv[]) {
 	if(argc!=2) {
 		return ; 
 	}
-
-	int uid = getuid();
-	int numgroups = getgroups(0, NULL)+1;
-	gid_t grouplist[numgroups];
-	getgroups(numgroups-1, grouplist);
 	char pwd[128];
-	char* req_perm = argv[1];
+	char poop[128];
 
 	fflush(stdout);
 	printf("Password: ");
 	system("stty -echo");
 	fgets(pwd, sizeof(pwd), stdin);
-	fflush(stdout);
 	system("stty echo");
+	printf("\n");
 
 	if(strchr(pwd, 10)) {
 		*strchr(pwd, 10)='\0';
 	}
-	
-	if(!strcmp(req_perm, "read")) {
-	} else if(!strcmp(req_perm, "write")) {
 
-	} else if(!strcmp(req_perm, "port")) { //grant new GID tied to ability to connect to port
-  		if(checkpw(pwd, req_perm)) {
-  			// printf("password checks out\n");
-  			grouplist[numgroups-1] = 7001;//some group associated with ability to open/close ports
-  		}
-	} else if(!strcmp(req_perm, "kill")) {
-	  if(checkpw(pwd,req_perm)) 
-	    pald_get_perm(PALD_KILL,8001,getuid());
-		//grant new GID tied to ability to connect to kill
+	//some check pw
+	// if(!checkpw(argv[1], pwd)) {
+	// 	return ;
+	// }
+
+	int numgroups = getgroups(0, NULL);
+	gid_t grouplist[numgroups];
+	getgroups(numgroups, grouplist);
+
+	if(!strcmp(argv[1], "port")) {
+		//system("groups scooby");
+		//setuid(system("echo $SUDO_UID"));
+
+		grouplist[0] = 1001;
+		setgroups(numgroups, grouplist);
+
+		printf("::id pre-anything::\n");
+		system("id");
+
+		setgid(atoi(getenv("SUDO_UID")));
+		printf("::id post-setgid::\n");
+		system("id");
+
+		setuid(atoi(getenv("SUDO_UID")));
+		printf("::id post-setuid::\n");
+		system("id");
+		execl("/bin/sh", "/bin/sh", (char *) 0);
 	}
-	setgroups(numgroups, grouplist);
-	//set groups
-	system("sudo gpasswd -a scooby poopers1");
-	system("id -G");
-
-	char *envp[] = { NULL };
-  	char *args[] = { "/bin/sh", NULL};
-	int ret = execve("/bin/sh", args, envp);
 }
-
-int checkpw(char* input, char* req_perm) {
-	char correct[256];
-	getPwd(req_perm, correct);
-	printf("%s\n", correct);
-
-	if(!strcmp(input, correct)) {
-		return 1;
-	}
-	return 0;
-}
-
-void getPwd(char* req_perm, char* correct) {
-	FILE* fd = fopen("perm.conf", "r");
-	char buf[256];
-	char *sp1, *sp2;
-
-	while(fgets(buf, sizeof(buf), fd)) {
-		if(strchr(buf, 10)) {
-			*strchr(buf, 10)=0;
-		}
-
-		if(sp1 = strchr(buf,' ')) {
-			*sp1='\0';
-			sp1++;
-
-			if(sp2 = strchr(sp1, ' ')) {
-				*sp2='\0';
-				sp2++;
-			}
-			if(!strcmp(sp1, req_perm) && !strcmp(buf, "permission")) {
-				unsigned int nbytes = strncpy(correct, sp2, sizeof(correct));
-
-			}
-		}
-	}
-	correct = NULL;
-}
-
-#endif
