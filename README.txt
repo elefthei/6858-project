@@ -8,6 +8,9 @@ them, by requesting additional groups to be added to their shell.  A
 centralized authentication daemon handles these authentication
 requests.
 
+To the graders: our write-up is in `OVERVIEW.txt`; our proposal is in
+`PROPOSAL.txt`; and an installation guide is in `INSTALL.txt`.
+
 Installation
 ------------
 

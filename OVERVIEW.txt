@@ -1,41 +1,43 @@
 Current PAL Implementation
-======================
+==========================
 
- + User logins (through SSH, using public-key) go to an anonymous user 
- 	  with effectively no permissions. This user may be in a chroot.
- - The sshd login is intercepted and instead a new user is created 
-      on the fly. By prefixing logins with the on-login and setup-jail 
-      scripts in incperm/bin, new users are allocated names and their 
-      directories setup. User ID's are not reused, and are instead 
-      allocated using a counter that is updated using an atomic
-      rename (incperm/var/uid).
+User logins (through SSH, using public-key) go to an anonymous user
+with effectively no permissions. This user may be in a chroot.  The
+sshd login is intercepted and instead a new user is created on the
+fly. By prefixing logins with the `on-login` and `setup-jail` scripts
+in `incperm/bin`, new users are allocated names and home directories
+setup. User ID's are not reused, and are instead allocated using a
+counter that is updated using an atomic rename (`incperm/var/uid`).
+Optionally, bind-mounts are set up in the new home directory and the
+user is chrooted into there (using a custom binary that drops
+privileges).
 
+A `setuid` binary allows a user to spawn a shell with added
+permissions, after doing the necessary authentication. Permissions
+will have been allocated by the administrator, and are password
+protected.  The binary sets the `uid` and `gid` for the process
+correctly before spawning a new shell; the source code is in
+`/permd/perm.c`.
 
- + A setuid binary allows a user to spawn a shell with added
-    permissions, after doing the necessary authentication. Permissions will
-    have been allocated by the administrator, and are password protected.
- - The binary sets the uid and gid for the process correctly before 
-      spawning a new shell, and the source code is /permd/perm.c. 
-      After running `make` inside of permd, the setuid binary is found 
-      in /incperm/skel.
+A root daemon listens to authentication requests (effectively,
+logins), and reports whether or not authentication succeeded.  This is
+what the aforementioned setuid binary uses.  The authentication code
+is found in `/pald` and exposes an API for the setuid binary.  The
+authentication daemon examines `/etc/shadow` to compare a password
+passed to it to the password for a certain user associated with each
+permission.
 
-
- + A root daemon listens to authentication requests (effectively,
-    logins), and reports whether or not authentication succeeded.
-    This is what the aforementioned setuid binary uses.
- - The authentication code is found in /pald and exposes an API for
-      the setuid binary.
-
-
- + Some administrator scripts exist to add groups/permissions.
- - The make-perm, protect-binary, and protect-directory scripts
-      in incperm/bin allow for administrators to setup permissions
-      on the server. Permissions are set by making groups with a paired
-      user, and the password for the permissions are the password for
-      the associated user account.
+Some administrator scripts exist to add groups/permissions.  The
+make-perm, protect-binary, and protect-directory scripts in
+incperm/bin allow for administrators to setup permissions on the
+server. Permissions are set by making groups with a paired user, and
+the password for the permissions are the password for the associated
+user account.
       
 Future Plans
 ------------
+
+Some things we plan to implement in the future:
 
  + Have the root daemon allocate sockets on priviledged ports and then pass
    them to requesting processes, while checking their capabilities.
