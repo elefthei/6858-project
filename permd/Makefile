@@ -1,4 +1,4 @@
 CFLAGS=-static -Wall
 
-perm:
-	gcc perm.c $(CFLAGS) -o perm
+../incperm/skel/perm:
+	gcc perm.c $(CFLAGS) -o ../incperm/skel/perm
