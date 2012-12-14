@@ -62,4 +62,8 @@ fi
 
 echo "Your temporary username is $UNAME; enjoy!"
 
-chroot "$HOME"
+
+
+cd /srv/incperm/bin
+./chroot-to-jail $UID
+echo `id -u`
