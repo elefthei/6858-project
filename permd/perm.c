@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 
 	setuid(getuid());
 
-	execl("/bin/sh", "/bin/sh", (char *) 0);
+	execl("/bin/bash", "/bin/bash", (char *) 0);
 
 	return 0;
 }
