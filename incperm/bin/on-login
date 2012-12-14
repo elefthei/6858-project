@@ -6,13 +6,13 @@
 prelogin
 
 username=`sudo /srv/incperm/bin/setup-jail`
-echo "Your temporary username is $username; enjoy!  Use `perm` to gain more privileges."
+echo "Your temporary username is $username; enjoy!  Use \`perm\` to gain more privileges."
 
 if [ "x$USE_CHROOT" = "x1" ]; then
     cd /srv/incperm/bin/
 
     ./copy.sh "/srv/incperm/$username"
-    ./chroot-to-jail `expr substr "$username" 9 1000"`
+    ./chroot-to-jail `expr substr "$username" 9 1000`
 elif [ -z "$SSH_ORIGINAL_COMMAND" ]; then
     exec sudo -u "$username" -i
 else

@@ -54,7 +54,4 @@ if [ "$TEST_ID" -ne "$UID" ]; then
     exit 128
 fi
 
-echo "Your temporary username is $UNAME; enjoy!"
-
-
-
+echo "$UNAME"
