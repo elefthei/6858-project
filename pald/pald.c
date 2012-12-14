@@ -95,8 +95,7 @@ int main(int argc, char* argv[])
     else if(child == 0) //child
       return check_creds(connection_fd, crypt_id);
     else //father 
-    wait(NULL); 
-    close(connection_fd);
+      close(connection_fd);
   }
   
   close(infd);
