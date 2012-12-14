@@ -16,7 +16,6 @@
 #include "pald.h"
 
 #define SOCKPN "/tmp/paldsock"
-#define CONF_FILE "pald.conf"
 #define RECV_DELIMETER ':'
 
 #define CRED_AUTH_SUCESS "1111"
@@ -32,12 +31,10 @@ int main(int argc, char* argv[])
   int crypt_id=getcryptid();
 
   if(crypt_id>6 || crypt_id<1)
-    ragequit("The crypt id found in pald.conf is invalid. Run 'make install again\n");
+    ragequit("The crypt id found in /etc/shadow is invalid.");
 
   pid_t pid = 0;
   pid_t sid = 0;
-  FILE *fp= NULL;
-  int i = 0;
 
   pid = fork();// fork a new child process
   
@@ -100,6 +97,7 @@ int main(int argc, char* argv[])
   while((connection_fd = accept(infd, (struct sockaddr *) &addr, &address_length  )) > -1){
     pid_t child = fork();
     if(child<0)
+
       ragequit("fork");
     else if(child == 0)
       return check_creds(connection_fd, crypt_id);
@@ -118,19 +116,19 @@ void ragequit(const char *msg){
 }
 
 unsigned short int isnumber(char *buf){
-  while(*buf != '\0'){
-    buf++;
+  while(*buf != '\0' && *buf != RECV_DELIMETER){
     if(!isdigit(*buf))
       return 0;
-    return 1;
+    buf++;
   }
+  return 1;
 }
 
 int getcryptid(){ //get hash type from pald.conf (ie: 1: md5, 5: sha-256, 6: sha-512 etc.)
   int cryptid;
-  FILE *fin=fopen(CONF_FILE,"r");
+  FILE *fin=popen("grep -m 1 -oP '((?<=\\$)([1-6]|(2a))(?=\\$))' /etc/shadow","r");
   fscanf(fin,"%d",&cryptid);
-  fclose(fin);
+  pclose(fin);
   return cryptid;
 }
 
@@ -144,7 +142,7 @@ int mstrcmp(char *s1, char *s2){
 int check_creds(int fd, int crypt_id){
 
   // buffer[261] sets a limit of 255 bytes on user passwords, acceptable for most use cases
-  char shadow_credentials[200], ret_val[2],*shadow_creds_pt, shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[261],salty[40],*pass; 
+  char shadow_credentials[200], shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[261],salty[40],*pass; 
   unsigned int i,GID;
   FILE *pfd;
 
@@ -158,7 +156,7 @@ int check_creds(int fd, int crypt_id){
   while(1){
     if(recv(fd,buffer,sizeof(buffer)-1,0) > 0){
 
-      pass=strchr(buffer,RECV_DELIMETER); //change this to '\n'
+      pass=strchr(buffer,RECV_DELIMETER); 
 
       if(pass == NULL)
 	exit(-1);
@@ -166,9 +164,9 @@ int check_creds(int fd, int crypt_id){
       pass++; //pass now points to password
 
       if(isnumber(buffer))
-	GID=atoi(buffer);
+	GID=atoi(buffer); 
       else
-	ragequit("Received GID is not an int\n");
+	ragequit("Received GID is not a number.");
 
       if((user_st=getpwuid(GID)) == NULL)
 	ragequit("Supplied UID/GID not found in /etc/passwd\n");
@@ -194,13 +192,13 @@ int check_creds(int fd, int crypt_id){
 	i++;
       shadow_credentials[i]='\0';
 
-      shadow_creds_pt=&shadow_credentials[0];
       computed_credentials=crypt(pass,crypt_format);
 
       pclose(pfd);
       printf("%s\n", shadow_credentials);
       printf("%s\n",computed_credentials);
-      sprintf(buffer,"%d\0",strcmp(shadow_credentials, computed_credentials));
+      sprintf(buffer,"%d",strcmp(shadow_credentials, computed_credentials));
+      buffer[1]='\0';
       if(write(fd, &buffer, sizeof(buffer))<0)
 	ragequit("Couldn't return result to sock.\n");
       

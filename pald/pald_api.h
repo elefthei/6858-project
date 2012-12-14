@@ -32,7 +32,8 @@ int pald_request_gid(gid_t GID){
 
   char *pass=getpass("Password: ");
   char DATA[265];
-  snprintf(DATA,sizeof(DATA), "%d%c%s\0", GID,RECV_DELIMETER, pass);
+  memset(DATA,'\0',265);
+  snprintf(DATA,sizeof(DATA), "%d%c%s", GID,RECV_DELIMETER, pass);
   if (write(sock, DATA, sizeof(DATA)) < 0)
     return ragequit("error writing on stream socket"); 
   
