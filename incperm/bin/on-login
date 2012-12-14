@@ -1,10 +1,22 @@
 #!/bin/sh
 
 # Read in configuration file
-#. /srv/incperm/incperm.conf
+. /srv/incperm/incperm.conf
 
-#prelogin
-uid=`id -u`
-sudo /srv/incperm/bin/setup-jail $uid
+prelogin
 
-#postlogin
+username=`sudo /srv/incperm/bin/setup-jail`
+echo "Your temporary username is $username; enjoy!  Use `perm` to gain more privileges."
+
+if [ "x$USE_CHROOT" = "x1" ]; then
+    cd /srv/incperm/bin/
+
+    ./copy.sh "/srv/incperm/$username"
+    ./chroot-to-jail `expr substr "$username" 9 1000"`
+elif [ -z "$SSH_ORIGINAL_COMMAND" ]; then
+    exec sudo -u "$username" -i
+else
+    exec sudo -u "$username" -H $SSH_ORIGINAL_COMMAND
+fi
+
+postlogin

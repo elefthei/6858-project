@@ -46,12 +46,6 @@ useradd \
     -g incperm \
     "$UNAME"
 
-HOME="$INCPERM_DIR$UNAME"
-cd /srv/incperm/bin/
-./copy.sh "$HOME"
-
-#chown root:root "$HOME"
-
 # Test account
 TEST_ID=`sudo -u "$UNAME" bash -c 'id -u'`
 
@@ -64,6 +58,3 @@ echo "Your temporary username is $UNAME; enjoy!"
 
 
 
-cd /srv/incperm/bin
-./chroot-to-jail $UID
-echo `id -u`
