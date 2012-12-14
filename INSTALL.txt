@@ -69,6 +69,8 @@ Next, edit the file `~incperm/.ssh/authorized_keys`, which manages SSH
 authentication for the `incperm` user.
 
     sudo -e /srv/incperm/home/.ssh/authorized_keys
+    sudo chown incperm:incperm /srv/incperm/home/.ssh/authorized_keys
+    sudo chmod 0700 /srv/incperm/home/.ssh/authorized_keys
     
 To this file, add each of the public keys that should be allowed to
 connect to your server, prefixed by the string
