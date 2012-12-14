@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pwd.h>
-// #include <pald/pald_api.h>
+#include "../pald/pald_api.h"
 
 int main(int argc, char* argv[]) {
 	if(argc!=2) {
@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
 	if(!pald_request_gid(argv[1])) {
 		return ;
 	}
+
 	int numgroups = getgroups(0, NULL)+1;
 	gid_t grouplist[numgroups];
 	getgroups(numgroups-1, grouplist);
