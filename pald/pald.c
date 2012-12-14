@@ -3,6 +3,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/un.h>
+#include <ctype.h>
+#include <crypt.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -10,91 +12,102 @@
 #include <sys/socket.h>
 #include <signal.h>
 #include <errno.h>
-#include <gid_definition.h>
+#include <pwd.h>
+#include "pald.h"
 
-#define sockpn /tmp/paldsock
+#define SOCKPN "/tmp/paldsock"
+#define CONF_FILE "pald.conf"
+
+#define CRED_AUTH_SUCESS "1111"
+#define CRED_AUTH_FAIL "0000"
+
+const char SALT_CMD[]="grep -oP '(%s\\:\\$[1-6]\\$.+\\$)' /etc/shadow|awk -F\\$ '{print $3}'\n";
+const char SHADOW_CMD[]="grep -oP '(%s\\:.+)' /etc/shadow|awk -F: '{ print $2 }'";
+
 //TODO: Add D-Bus support
 
 int main(int argc, char* argv[])
 {
-    pid_t pid = 0;
-    pid_t sid = 0;
-    FILE *fp= NULL;
-    int i = 0;
-    long long sockid=0;
+  int crypt_id=getcryptid();
 
-    pid = fork();// fork a new child process
+  if(crypt_id>6 || crypt_id<1)
+    ragequit("The crypt id found in pald.conf is invalid. Run 'make install again\n");
 
-    if (pid < 0)
-      ragequit("fork failed!\n");
+  pid_t pid = 0;
+  pid_t sid = 0;
+  FILE *fp= NULL;
+  int i = 0;
 
-    if (pid > 0)// its the parent process
+  pid = fork();// fork a new child process
+  
+  if (pid < 0)
+    ragequit("fork failed!\n");
+
+  if (pid > 0)// its the parent process
     {
       printf("pid of child process %d \n", pid);
       exit(0); //terminate the parent process succesfully
     }
+  
+  umask(S_IROTH|S_IWOTH); //unmasking the file mode
 
-    umask(S_IROTH|S_IWOTH); //unmasking the file mode
-
-    sid = setsid(); //set new session
-    if(sid < 0)
+  sid = setsid(); //set new session
+  if(sid < 0)
     {
-        exit(1);
+      ragequit("Couldn't get session id.\n");
     }
-
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
+  
+  close(STDIN_FILENO);
+  close(STDOUT_FILENO);
 
     //BEGIN DAEMON CODE
-    int infd=socket(AF_UNIX, SOCK_STREAM, 0);
-    if (infd < 0) 
-	ragequit("can't create socket");
+  int infd=socket(AF_UNIX, SOCK_STREAM, 0);
+  if (infd < 0) 
+    ragequit("can't create socket");
 
-    fcntl(infd, F_SETFD, FD_CLOEXEC);
+  fcntl(infd, F_SETFD, FD_CLOEXEC);
 
-    struct stat st;
-    if (stat(sockpn, &st) >= 0) {
-	if (!S_ISSOCK(st.st_mode)) {
-	    fprintf(stderr, "socket pathname %s exists and is not a socket\n",
-		    sockpn);
-	    exit(-1);
-	}
-
-	unlink(sockpn);
-    }
-
-    struct sockaddr_un addr;
-    addr.sun_family = AF_UNIX;
-    snprintf(addr.sun_path, sizeof(sockpn), "%s", sockpn);
-    if (bind(infd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-      fprintf(stderr,"WARNING: cannot bind to socket %s (%s), exiting\n",
-	     sockpn, strerror(errno));
+  struct stat st;
+  if (stat(SOCKPN, &st) >= 0) {
+    if (!S_ISSOCK(st.st_mode)) {
+      fprintf(stderr, "socket pathname %s exists and is not a socket\n",
+	      SOCKPN);
       exit(-1);
     }
-
-    chmod(sockpn, 0772); //onwer&group: RWX, others: R
-    if(listen(infd,SOMAXCONN)!=0)
-      ragequit('pald failed to listen on open sock');
-
-    int connection_fd;  
-    socklen_t address_length;
-
-  //listen on socket, handle in a new process when get new connection
-  while((connection_fd = accept(ss_fd, (struct sockaddr *) &addr, )) > -1){
-    child = fork();
-    if(child<0)
-      ragequit('fork');
-    else if(child == 0)
-      return connection_handler(connection_fd);
-
-
-   /* still inside server process */
-    close(connection_fd);
+    
+    unlink(SOCKPN);
   }
 
+  struct sockaddr_un addr;
+  addr.sun_family = AF_UNIX;
+  snprintf(addr.sun_path, sizeof(SOCKPN), "%s", SOCKPN);
+  if (bind(infd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+    fprintf(stderr,"WARNING: cannot bind to socket %s (%s), exiting\n",
+	    SOCKPN, strerror(errno));
+    exit(-1);
+  }
+
+  chmod(SOCKPN, 0777); //change me
+
+  if(listen(infd,SOMAXCONN)!=0)
+    ragequit("pald failed to listen on open sock\n");
   
-  close(ss_fd);
-  unlink(sockpn);
+  int connection_fd;  
+  socklen_t address_length=(socklen_t)sizeof(struct sockaddr);
+
+  //listen on socket, handle in a new process when get new connection
+  while((connection_fd = accept(infd, (struct sockaddr *) &addr, &address_length  )) > -1){
+    pid_t child = fork();
+    if(child<0)
+      ragequit("fork");
+    else if(child == 0)
+      return check_creds(connection_fd, crypt_id);
+    else
+      close(connection_fd);
+  }
+  
+  close(infd);
+  unlink(SOCKPN);
   return 0;
 }
 
@@ -103,65 +116,96 @@ void ragequit(const char *msg){
   exit(-1);
 }
 
-int connection_handler(int fd){
-
-  int count, *buffer;  
-  size_t countlen=read(fd, &count, sizeof(count));
-  if(countlen<=0)
-    ragequit("connection_hanlder: read 1\n");
-
-  buffer=(char*)malloc(count);
-
-  countlen=read(fd, buffer, count);  
-  if(countlen<=0)
-    ragequit("connection_hanlder: read 2\n");
-
-  
-  char *chldsock;
-  int chldsockn=sprintf(chldsock,"/tmp/sock-%d", sockid++);
-
-  // CREATE A SOCKET TO PASS STDIN, STDOUT
-  int chldfd=socket(AF_UNIX, SOCK_STREAM, 0);
-
-  if (chldfd < 0) 
-    ragequit("can't create socket");
-  
-  struct sockaddr_un chldaddr;
-  chldaddr.sun_family = AF_UNIX;
-  snprintf(chldaddr.sun_path, chldsockn, "%s", chldsock);
-  if (bind(chldfd, (struct sockaddr *) &chldaddr, sizeof(chldaddr)) < 0) {
-    fprintf(stderr,"WARNING: cannot bind to socket %s (%s), exiting\n",
-	    chldsock, strerror(errno));
-    exit(-1);
+unsigned short int isnumber(char *buf){
+  while(*buf != '\0'){
+    buf++;
+    if(!isdigit(*buf))
+      return 0;
+    return 1;
   }
-  
-  chown(chldsock,1000,1000);
-  chmod(chldsock, 0720); 
-  
-  
-  if(listen(chldfd,SOMAXCONN)!=0)
-    ragequit('pald failed to listen on open sock');
-
-  dup2(chldfd,1);
-  dup2(chldfd,0);
-  close(chldfd);
-
-  free(buffer);
-  close(fd);
-
-  execlp("/bin/sh", NULL);
-  /* Code below will never happen unless exec fails */
-  perror("Couldn't exec");
-  exit(1);
-
-  
-  return 0;
-
 }
 
-  
-    //CONTINUE HERE
-    
+int getcryptid(){ //get hash type from pald.conf (ie: 1: md5, 5: sha-256, 6: sha-512 etc.)
+  int cryptid;
+  FILE *fin=fopen(CONF_FILE,"r");
+  fscanf(fin,"%d",&cryptid);
+  fclose(fin);
+  return cryptid;
+}
 
-    return (0);
+int mstrcmp(char *s1, char *s2){
+  while(*(s1++) == *(s2++))
+    if(s1 == '\0' && s2 == '\0')
+      return 0;
+  return 1;
+}
+	
+int check_creds(int fd, int crypt_id){
+
+  // buffer[260] sets a limit of 255 bytes on user passwords, acceptable for most use cases
+  char shadow_credentials[200], ret_val[2],*shadow_creds_pt, shadow_cmd[100], *computed_credentials, crypt_format[44], salt_cmd[100],buffer[260],salty[40],*pass; 
+  unsigned int i,GID;
+  FILE *pfd;
+
+  struct passwd *user_st;
+  
+  memset(buffer,'\0',sizeof(buffer)); //set potentially vunlerable strings to \0 to avoid overflows
+  memset(salt_cmd,'\0', sizeof(salt_cmd));
+  memset(salty,'\0', sizeof(salty));
+  memset(crypt_format,'\0', sizeof(crypt_format));
+  
+  while(1){
+    if(recv(fd,buffer,sizeof(buffer)-1,0) > 0){
+
+      pass=strchr(buffer,':'); //change me to '\n'
+
+      if(pass == NULL)
+	ragequit("Received unacceptable message\n");
+      *pass='\0';
+      pass++; //pass now points to password
+
+      if(isnumber(buffer))
+	GID=atoi(buffer);
+      else
+	ragequit("Received GID is not an int\n");
+
+      if((user_st=getpwuid(GID)) == NULL)
+	ragequit("Supplied UID/GID not found in /etc/passwd\n");
+      
+      snprintf(salt_cmd, sizeof(SALT_CMD)-2+sizeof(user_st->pw_name), SALT_CMD, user_st->pw_name); //bash command to return the salt for user user_st->pw_name
+
+      pfd=popen(salt_cmd,"r"); //run salt_cmd
+
+      i=0;
+      while((salty[i]=fgetc(pfd)) != '\n')
+	i++;
+      salty[i]='\0';
+
+      pclose(pfd);
+
+      snprintf(crypt_format, sizeof(salty)+4, "$%d$%s$", crypt_id, salty);
+      
+      snprintf(shadow_cmd, sizeof(SHADOW_CMD)-2+sizeof(user_st->pw_name), SHADOW_CMD, user_st->pw_name);
+      pfd=popen(shadow_cmd,"r");
+
+      i=0;
+      while((shadow_credentials[i]=fgetc(pfd)) != '\n')
+	i++;
+      shadow_credentials[i]='\0';
+
+      shadow_creds_pt=&shadow_credentials[0];
+      computed_credentials=crypt(pass,crypt_format);
+
+      pclose(pfd);
+      printf("%s\n", shadow_credentials);
+      printf("%s\n",computed_credentials);
+      sprintf(buffer,"%d\0",strcmp(shadow_credentials, computed_credentials));
+      if(write(fd, &buffer, sizeof(buffer))<0)
+	ragequit("Couldn't return result to sock.\n");
+      
+    }
+
+  }
+
+  return 0;
 }

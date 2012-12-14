@@ -1,4 +1,4 @@
-import socket, sys, struct, subprocess
+import socket, sys, struct, os
 
 
 if(len(sys.argv) != 2):
@@ -8,30 +8,15 @@ if(len(sys.argv) != 2):
 GID=int(sys.argv[1])
 
 pals = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-pals.connect("/tmp/palsock")
-
-pals.send(str(GID).zfill(16))
-pals.send(str(getuid()).zfill(16))
-
-fd=int(pals.recv(16))
-print "fd= %d" % fd
-
-s=socket.fromfd(fd,socket.AF_UNIX, socket.SOCK_STREAM)
-
-# pals.send('ERROR')
-# sys.stderr.write('Getting socket from fd %s\n')
-# sys.exit(-1)
-
-#print 'Got it'
-pals.send(str(UID).zfill(16))
+pals.connect("/tmp/paldsock")
 
 while 1:
-    sys.stdout.write('$ ')
-    command=sys.stdin.readline()
-    s.send(command)
-    data = s.recv(4096)
+    sys.stdout.write(': ')
+    command=sys.stdin.readline().rstrip('\n')
+    pals.send(command)
+    data = pals.recv(1)
     if(chr(04) in data):
-        s.close()
+        pals.close()
         sys.exit(0)
     sys.stdout.write(data)
 

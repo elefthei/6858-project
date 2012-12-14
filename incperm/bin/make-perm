@@ -32,7 +32,7 @@ useradd \
     -d "$INCPERM_DIR"/perm-"$PERM" \
     -s "/bin/bash" \
     -g "$PERM" \
-    -G incperm-perm \
+    -G incperm \
     "$PERM-login"
 
 sudo passwd "$PERM-login"
