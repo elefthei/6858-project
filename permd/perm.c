@@ -11,50 +11,27 @@
 int main(int argc, char* argv[]) {
 	if(argc!=2) {
 		perror("Incorrect number of arguments");
-		return 1; //exit(1)?
+		return 1;
 	}
-	// char pwd[128];
-	// char buf[256];
-	// char* sp;
-
-	// fflush(stdout);
-	// printf("Password: ");
-	// system("stty -echo");
-	// fgets(pwd, sizeof(pwd), stdin);
-	// system("stty echo");
-	// printf("\n");
-
-	// if(strchr(pwd, 10)) {
-	// 	*strchr(pwd, 10)='\0';
-	// }
 
 	//some check pw
-	if(!pald_request_gid( (gid_t)atoi(argv[1]) ) {
+	if(!pald_request_gid( (gid_t)atoi(argv[1]) )) {
 		perror("Wrong password");
-		return 1; //exit(1)?
+		return 1;
 	}
 
 	int numgroups = getgroups(0, NULL)+1;
 	gid_t grouplist[numgroups];
 	getgroups(numgroups-1, grouplist);
 
-	
-	//setuid(system("echo $SUDO_UID"));
-
 	grouplist[numgroups-1] = atoi(argv[1]);//some GID attached to this permission
 	setgroups(numgroups, grouplist);
 
-	// printf("::id pre-anything::\n");
-	// system("id");
-
 	setgid(getgid());
-	// printf("::id post-setgid::\n");
-	//system("id");
 
 	setuid(getuid());
-	// printf("::id post-setuid::\n");
-	// system("id");
-
 
 	execl("/bin/sh", "/bin/sh", (char *) 0);
+
+	return 0;
 }
